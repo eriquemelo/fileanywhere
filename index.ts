@@ -1,7 +1,6 @@
 import {persistence, loadDoc} from "./file_handling/file.ts"
 import * as Y from "yjs"
 const DOCS = new Map<string, Y.Doc>()
-
 const server = Bun.serve<{ username: string, fileId: string, doc: any}>({ 
  async fetch(req, server) {
     const url = new URL(req.url)
@@ -13,9 +12,7 @@ const server = Bun.serve<{ username: string, fileId: string, doc: any}>({
        console.info("Websocket attempting upgrade")
        if (server.upgrade(req, { data: { username, fileId } } )) return;
        return new Response("Upgrade failed", { status: 500 })
-     
-    }
-  
+    }  
     return new Response("Not found", {status: 404})
   }, 
   websocket: {
@@ -29,8 +26,6 @@ const server = Bun.serve<{ username: string, fileId: string, doc: any}>({
         DOCS.set(ws.data.fileId, doc)
       }
       ws.data.doc = doc;
-
-
       const initialDoc = Y.encodeStateAsUpdate(doc)
       ws.send(initialDoc)
     },
@@ -38,6 +33,9 @@ const server = Bun.serve<{ username: string, fileId: string, doc: any}>({
       const update = new Uint8Array(message);
       const doc = ws.data.doc;
       Y.applyUpdate(doc, update);
+      server.publish(ws.data.fileId, message)
+    },
+    close(ws) {
     }
   }
 })
